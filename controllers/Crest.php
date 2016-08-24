@@ -7,7 +7,7 @@ class Crest extends CI_Controller {
 		parent::__construct();
 		$this->config->load('ccp_api');
 		$this->load->library( 'LibCREST', $this->config->item('crest_params') );
-    }// __construct()
+	}// __construct()
 	
 	
 	private function refresh_token()
@@ -73,31 +73,5 @@ class Crest extends CI_Controller {
 		
 	}// verify()
 	
-	/*
-	public function setWaypoint()
-	{
-		self::refresh_token();
-		
-		$character_id = '1416844877';
-		
-		$amarr_id = 30002187;
-		
-		$post_array = array(
-			'clearOtherWaypoints' => false,
-			'first' => false,
-			'solarSystem' => array(
-				'href' => 'https://crest-tq.eveonline.com/solarsystems/'.$amarr_id.'/',
-				'id' => $amarr_id
-			)
-		);
-		//$post_body = json_encode( $post_array, JSON_UNESCAPED_SLASHES );
-		//print_r( $post_body );
-		
-		$url ='https://crest-tq.eveonline.com/'.'/characters/'.$character_id.'/ui/autopilot/waypoints/';
-		
-		$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'POST_JSON', $url, $post_array, TRUE );
-		print_r( $response );
-	}// setWaypoint()
-	*/
 }// Crest
 ?>
