@@ -5,7 +5,8 @@ class Crest extends CI_Controller {
     public function __construct()
     {
         parent::__construct();
-		$this->load->library( 'libCREST' );
+		$this->config->load('ccp_api');
+		$this->load->library( 'LibCREST', $this->config->item('crest_params') );
     }// __construct()
 	
 	
@@ -41,8 +42,8 @@ class Crest extends CI_Controller {
 	{
 		$scopes = array(
 			'fleetRead',
-			'fleetWrite',
-			'characterNavigationWrite'
+			'fleetWrite'/*,
+			'characterNavigationWrite'*/	// Need to track scopes of current token, request combo of previous and desired extras?
 		);
 		
 		$state = bin2hex( openssl_random_pseudo_bytes(32) );	//	32 bytes of entropy, 64 hex chars, avoid risk of early null byte
@@ -68,204 +69,9 @@ class Crest extends CI_Controller {
 		
 		self::reset_local_tokens( $response );
 		
-		redirect('crest', 'location');
+		redirect('fleets', 'location');	// Need a redirect URL stored in session?
 		
 	}// verify()
-	
-	
-	public function index()
-	{
-		self::refresh_token();
-		
-		if( !isset($_SESSION['fleet_url']) )
-		{
-			// Generate the form to obtain the ingame Fleet URL
-			echo '<html>
-			<head><title>Enter Fleet URL</title></head>
-			<body>
-			<form action="/crest/formFleet" method="get">
-			<label for="url">Enter Fleet URL (as Fleet Boss, Fleet actions dropdown -> Copy External Fleet Link)</label>
-			<input type="text" name="url">
-			<input type="submit">
-			</form>
-			</body>
-			</html>';
-			exit;
-		}
-		else
-		{
-			// Use the ingame Fleet URL
-			$url = $_SESSION['fleet_url'];
-			
-			$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'GET', $url );
-			
-			$response_decoded = json_decode( $response );
-			//print_r( $response_decoded );
-			
-			if( $response_decoded != NULL && isset( $response_decoded->members ) )
-			{
-				$url = $response_decoded->members->href;
-				
-				$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'GET', $url );
-				
-				$response_decoded = json_decode( $response );
-				//print_r( $response_decoded );
-				if( $response_decoded != NULL && isset( $response_decoded->items ) )
-				{
-					echo '<html>
-					<head><title>Fleet Tracker Example</title></head>
-					<body>
-					<table>
-					<tr><th>Name</th><th>Location</th><th>Docked at</th><th>Ship</th></tr>';
-						foreach( $response_decoded->items as $member )
-						{
-							print "<tr><td>".$member->character->name."</td>";
-							print "<td>".$member->solarSystem->name."</td>";
-							if( isset($member->station) )
-							{
-								print "<td>".$member->station->name."</td>";
-							}
-							else
-							{
-								print "<td>Undocked</td>";
-							}
-							print "<td>".$member->ship->name."</td>";
-							print "</tr>";
-							
-						}
-					echo '</table>
-					</body>
-					</html>';
-				}
-			}
-			
-		}
-		
-	}// index()
-	
-	public function formFleet()
-	{
-		self::refresh_token();
-
-		if( !isset($_GET['url']) )
-		{
-			echo "Need a fleet URL";
-			exit();
-		}
-
-		if( !preg_match('#^https://crest-tq.eveonline.com/fleets/(\d+)/$#', $_GET['url'], $matches) )
-		{
-			echo "Need a valid fleet URL";
-			exit();
-		}
-
-		$_SESSION['fleet_url']=$_GET['url'];
-		$_SESSION['fleet_id'] = $matches[1];
-		
-		// Redirect back to the index to list the fleet details
-		redirect('crest', 'location');
-		
-	}// formFleet
-	
-	public function forgetFleet()
-	{
-		unset( $_SESSION['fleet_url'] );
-		unset( $_SESSION['fleet_id'] );
-		
-		redirect('crest', 'location');
-	}// forgetFleet()
-	
-	public function setFleetMOTD()
-	{
-		self::refresh_token();
-		
-		$put_array = array(
-			'motd' => 'testmotd<br><loc><url=showinfo:5//30002187>Amarr</url></loc>'//	'testmotd'
-		);
-		
-		$url ='https://crest-tq.eveonline.com/'.'/fleets/'.$_SESSION['fleet_id'].'/';
-		
-		$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'PUT', $url, $put_array, TRUE );
-		print_r( $response );
-	}// setFleetMOTD()
-	
-	public function addWing()
-	{
-		self::refresh_token();
-		
-		$url ='https://crest-tq.eveonline.com/'.'/fleets/'.$_SESSION['fleet_id'].'/wings/';
-		
-		$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'POST_JSON', $url, array(), TRUE );
-		print_r( $response );
-	}// addWing()
-	
-	public function getWings()
-	{
-		self::refresh_token();
-		
-		$url ='https://crest-tq.eveonline.com/'.'/fleets/'.$_SESSION['fleet_id'].'/wings/';
-		
-		$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'GET', $url );
-		//print_r( $response );
-		$response_decoded = json_decode( $response );
-		print_r( $response_decoded );
-	}// getWings()
-	
-	public function deleteWing()
-	{
-		self::refresh_token();
-		
-		if( !isset($_GET['wingID']) )
-		{
-			// Generate the form to obtain the ingame Fleet wingID
-			echo '<html>
-			<head><title>Enter wingID</title></head>
-			<body>
-			<form action="/crest/deleteWing" method="get">
-			<label for="wingID">Enter Fleet wingID</label>
-			<input type="text" name="wingID">
-			<input type="submit">
-			</form>
-			</body>
-			</html>';
-			exit;
-		}
-		else
-		{
-			// Use the ingame Fleet wingID
-			$wingID = $_GET['wingID'];
-			$url ='https://crest-tq.eveonline.com/'.'/fleets/'.$_SESSION['fleet_id'].'/wings/'.$wingID.'/';
-			
-			$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'DELETE', $url, array(), TRUE );
-			print_r( $response );
-		}
-	}// deleteWing()
-	
-	
-	public function setWaypoint()
-	{
-		self::refresh_token();
-		
-		$character_id = '1416844877';	// Daneel Trevize
-		
-		$amarr_id = 30002187;
-		
-		$post_array = array(
-			'clearOtherWaypoints' => false,
-			'first' => false,
-			'solarSystem' => array(
-				'href' => 'https://crest-tq.eveonline.com/solarsystems/'.$amarr_id.'/',
-				'id' => $amarr_id
-			)
-		);
-		//$post_body = json_encode( $post_array, JSON_UNESCAPED_SLASHES );
-		//print_r( $post_body );
-		
-		$url ='https://crest-tq.eveonline.com/'.'/characters/'.$character_id.'/ui/autopilot/waypoints/';
-		
-		$response = $this->libcrest->do_call( $_SESSION['crest_auth_token'], 'POST_JSON', $url, $post_array, TRUE );
-		print_r( $response );
-	}// setWaypoint()
 	
 }// Crest
 ?>
