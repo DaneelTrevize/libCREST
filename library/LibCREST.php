@@ -23,9 +23,9 @@ class LibCREST
 	{
 		$this->CI =& get_instance();	// Assign the CodeIgniter object to a variable
 		
-        $this->CREST_CLIENT_ID = $params['CLIENT_ID'];
-        $this->CREST_CLIENT_SECRET = $params['CLIENT_SECRET'];
-        $this->REDIRECT_URI = $params['REDIRECT_URI'];
+		$this->CREST_CLIENT_ID = $params['CLIENT_ID'];
+		$this->CREST_CLIENT_SECRET = $params['CLIENT_SECRET'];
+		$this->REDIRECT_URI = $params['REDIRECT_URI'];
 		$this->USER_AGENT = $params['USER_AGENT'];
 	}// __construct()
 	
