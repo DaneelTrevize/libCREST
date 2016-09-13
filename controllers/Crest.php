@@ -60,6 +60,14 @@ class Crest extends CI_Controller {
 		$state = $_GET['state'];
 		$code = $_GET['code'];
 		
+		if( $state == NULL || $state == '' || $code == NULL || $code == '' )
+		{
+			// Redirect to login?
+			$this->session->set_flashdata( 'flash_message', 'Invalid CREST flow. Please ensure any bookmarks are still valid.' );
+			log_message( 'error', 'Crest controller: Invalid CREST flow. $state:'. $state . ', $code:' .$code );
+			redirect('fleets', 'location');
+		}
+		
 		$response = $this->libcrest->handle_callback( $local_state, $state, $code );
 		if( $response === FALSE )
 		{
