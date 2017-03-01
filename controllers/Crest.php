@@ -6,57 +6,36 @@ class Crest extends CI_Controller {
 	{
 		parent::__construct();
 		$this->config->load('ccp_api');
+		$this->load->model('CREST_model');
 		$this->load->library( 'LibCREST', $this->config->item('crest_params') );
 	}// __construct()
 	
 	
-	private function refresh_token()
-	{
-		if( !isset($_SESSION['crest_expiry']) )
-		{
-			redirect('crest/login', 'location');
-		}
-		
-		if( time() >= $_SESSION['crest_expiry'] )
-		{
-			$response = $this->libcrest->refresh_access_token( $_SESSION['crest_refresh_token'] );
-			if( $response === FALSE )
-			{
-				// Error on bad access token refreshing
-				log_message( 'error', 'Crest controller: failure to refresh access token' );
-			}
-			
-			self::reset_local_tokens( $response );
-		}
-	}// refresh_token()
-	
-	private function reset_local_tokens( $response )
-	{
-		$_SESSION['crest_auth_token'] = $response['access_token'];
-		$_SESSION['crest_refresh_token'] = $response['refresh_token'];
-		$_SESSION['crest_expiry'] = time() + (60*20);	// 20 minutes
-	}// reset_local_tokens()
-	
-	
 	public function login()		// Set up local state (for XSRF prevention) before calling external CCP URL
 	{
+		if( !$this->CREST_model->expecting_login() )
+		{
+			$this->session->set_flashdata( 'flash_message', 'Invalid CREST flow. Please ensure any bookmarks are still valid.' );
+			log_message( 'error', 'Crest controller: Invalid CREST flow. Not expecting login().' );
+			redirect('portal', 'location');
+		}
+		
 		$scopes = array(
 			'fleetRead',
 			'fleetWrite'/*,
 			'characterNavigationWrite'*/	// Need to track scopes of current token, request combo of previous and desired extras?
 		);
 		
-		$state = bin2hex( openssl_random_pseudo_bytes(32) );	//	32 bytes of entropy, 64 hex chars, avoid risk of early null byte
+		$state = $this->CREST_model->setup_login_state();
 		
 		$url = $this->libcrest->get_authentication_url( $scopes, $state );
 		
-		$_SESSION['crest_auth_state'] = $state;
 		redirect($url, 'location');
 	}// login()
 	
 	public function verify()	// Registered callback URL for CREST
 	{
-		$local_state = $_SESSION['crest_auth_state'];
+		$local_state = $this->CREST_model->get_login_state();
 		$state = $_GET['state'];
 		$code = $_GET['code'];
 		
@@ -65,19 +44,21 @@ class Crest extends CI_Controller {
 			// Redirect to login?
 			$this->session->set_flashdata( 'flash_message', 'Invalid CREST flow. Please ensure any bookmarks are still valid.' );
 			log_message( 'error', 'Crest controller: Invalid CREST flow. $state:'. $state . ', $code:' .$code );
-			redirect('fleets', 'location');
+			redirect('portal', 'location');
 		}
 		
 		$response = $this->libcrest->handle_callback( $local_state, $state, $code );
 		if( $response === FALSE )
 		{
 			// Error on bad token verifying
+			$this->session->set_flashdata( 'flash_message', 'CREST login failed.' );
 			log_message( 'error', 'Crest controller: failure to verify access token' );
+			redirect('portal', 'location');
 		}
 		
-		self::reset_local_tokens( $response );
+		$location = $this->CREST_model->finish_login( $response );
 		
-		redirect('fleets', 'location');	// Need a redirect URL stored in session?
+		redirect($location, 'location');
 		
 	}// verify()
 	
