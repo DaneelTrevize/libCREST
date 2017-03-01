@@ -1,4 +1,5 @@
-// Snippets to demo how LibCREST is used.
+<?php
+	// Snippets to demo how LibCREST is used.
 
 	private function refresh_token()
 	{
@@ -32,3 +33,4 @@
 		$response = $this->CI->libcrest->do_call( $this->CI->CREST_model->get_auth_token(), 'PUT', self::get_fleet_url(), $put_array, TRUE );
 		return $response;
 	}// set_fleet_motd()
+?>
