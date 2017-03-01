@@ -19,6 +19,8 @@ class LibCREST
 	private $REDIRECT_URI;
 	private $USER_AGENT;
 	
+	private $url_handle_map;
+	
 	public function __construct( $params )
 	{
 		$this->CI =& get_instance();	// Assign the CodeIgniter object to a variable
@@ -27,6 +29,8 @@ class LibCREST
 		$this->CREST_CLIENT_SECRET = $params['CLIENT_SECRET'];
 		$this->REDIRECT_URI = $params['REDIRECT_URI'];
 		$this->USER_AGENT = $params['USER_AGENT'];
+		
+		$this->url_handle_map = array();
 	}// __construct()
 	
 	
@@ -74,18 +78,37 @@ class LibCREST
 		}
 		$headers = [$header];
 		
-		$ch = curl_init();
-		if( $ch === FALSE )
+		$common_url = self::parse_for_common_url( $url );
+		if( $common_url === FALSE )
 		{
-			// Log an error about cURL failing?
-			log_message( 'error', 'LibCREST: cURL failed to init()');
+			log_message( 'error', 'LibCREST: failed to parse url: ' .$url );
 			return FALSE;
+		}
+		
+		if( array_key_exists( $common_url, $this->url_handle_map ) )
+		{
+			log_message( 'debug', 'LibCREST: re-using handler for url: ' .$url );
+			$ch = $this->url_handle_map[$common_url];
+			curl_reset( $ch );
+		}
+		else
+		{
+			$ch = curl_init();
+			if( $ch === FALSE )
+			{
+				// Log an error about cURL failing?
+				log_message( 'error', 'LibCREST: cURL failed to init()');
+				return FALSE;
+			}
+			
+			$this->url_handle_map[$common_url] = $ch;
 		}
 		
 		curl_setopt( $ch, CURLOPT_USERAGENT, $this->USER_AGENT );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE );
 		curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, TRUE );
 		curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 2 );
+		
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, $callType );
 		
 		switch( $callType )
@@ -145,10 +168,29 @@ class LibCREST
 			$return = $result;
 		}
 		
-		curl_close( $ch );
-		
 		return $return;
 	}// do_call()
+	
+	private static function parse_for_common_url( $url )
+	{
+		$parsed_url = parse_url( $url );
+		if( $parsed_url === FALSE )
+		{
+			return FALSE;
+		}
+		
+		$scheme   = isset( $parsed_url['scheme'] ) ? $parsed_url['scheme'] . '://' : '';
+		$host     = isset( $parsed_url['host'] ) ? $parsed_url['host'] : '';
+		$port     = isset( $parsed_url['port'] ) ? ':' . $parsed_url['port'] : '';
+		$user     = isset( $parsed_url['user'] ) ? $parsed_url['user'] : '';
+		$pass     = isset( $parsed_url['pass'] ) ? ':' . $parsed_url['pass']  : '';
+		$pass     = ($user || $pass) ? "$pass@" : '';
+		$path     = isset( $parsed_url['path'] ) ? $parsed_url['path'] : '';
+		$query    = isset( $parsed_url['query'] ) ? '?' . $parsed_url['query'] : '';
+		$fragment = isset( $parsed_url['fragment'] ) ? '#' . $parsed_url['fragment'] : '';
+		
+		return "$scheme$host$port";
+	}// parse_for_common_url()
 	
 	
 	public function handle_callback( $local_state, $state, $code )
