@@ -34,7 +34,7 @@ Class CREST_model extends CI_Model {
 	
 	public function get_login_state()
 	{
-		return $_SESSION['crest']['auth_state'];
+		return isset( $_SESSION['crest']['auth_state'] ) ? $_SESSION['crest']['auth_state'] : NULL;
 	}// get_login_state()
 	
 	public function finish_login( $response )
