@@ -35,9 +35,16 @@ class Crest extends CI_Controller {
 	
 	public function verify()	// Registered callback URL for CREST
 	{
+		$state = $this->input->get('state');
+		$code = $this->input->get('code');
+		
 		$local_state = $this->CREST_model->get_login_state();
-		$state = $_GET['state'];
-		$code = $_GET['code'];
+		if( $local_state === NULL )
+		{
+			$this->session->set_flashdata( 'flash_message', 'Expired CREST state. Please avoid navigating Back during CREST actions.' );
+			log_message( 'error', 'Crest controller: Expired CREST state. $state:'. $state . ', $code:' .$code );
+			redirect('portal', 'location');
+		}
 		
 		if( $state == NULL || $state == '' || $code == NULL || $code == '' )
 		{
