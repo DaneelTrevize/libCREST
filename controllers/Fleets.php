@@ -14,14 +14,19 @@
 			}
 			
 			$this->CI->CREST_model->store_tokens( $response );
-			return TRUE;
 		}
+		return TRUE;
 	}// refresh_token()
   
 
 	public function set_fleet_motd( $fleet_scheduled_details )
 	{
-		self::refresh_token();
+		if( !self::refresh_token() )
+		{
+			return array(
+				'error' => 'Unable to refresh CREST authentication tokens.'
+			);
+		}
 		
 		$motd = self::generate_MOTD( $fleet_scheduled_details );
 		
