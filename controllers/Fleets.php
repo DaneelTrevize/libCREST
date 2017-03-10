@@ -3,9 +3,9 @@
 
 	private function refresh_token()
 	{
-		if( $this->CI->CREST_model->need_refreshing() )
+		if( $this->CI->OAuth_Model->need_refreshing() )
 		{
-			$response = $this->CI->libcrest->refresh_access_token( $this->CI->CREST_model->get_refresh_token() );
+			$response = $this->CI->libcrest->refresh_access_token( $this->CI->OAuth_Model->get_refresh_token() );
 			if( $response === FALSE )
 			{
 				// Error on bad access token refreshing
@@ -13,7 +13,7 @@
 				return FALSE;
 			}
 			
-			$this->CI->CREST_model->store_tokens( $response );
+			$this->CI->OAuth_Model->store_tokens( $response );
 		}
 		return TRUE;
 	}// refresh_token()
@@ -35,7 +35,7 @@
 			'motd' => $motd
 		);
 		
-		$response = $this->CI->libcrest->do_call( $this->CI->CREST_model->get_auth_token(), 'PUT', self::get_fleet_url(), $put_array, TRUE );
+		$response = $this->CI->libcrest->do_call( $this->CI->OAuth_Model->get_auth_token(), 'PUT', self::get_fleet_url(), $put_array, TRUE );
 		return $response;
 	}// set_fleet_motd()
 ?>
