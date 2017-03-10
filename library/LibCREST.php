@@ -13,6 +13,9 @@ class LibCREST
 	const TOKEN_URL = 'https://login.eveonline.com/oauth/token';
 	const VERIFY_URL = 'https://login.eveonline.com/oauth/verify';
 	
+	const CONNECT_TIMEOUT = 5;
+	const CALL_TIMEOUT = 20;
+	
 	private $CI;
 	private $CREST_CLIENT_ID;
 	private $CREST_CLIENT_SECRET;
@@ -108,6 +111,9 @@ class LibCREST
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE );
 		curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, TRUE );
 		curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 2 );
+		
+		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, self::CONNECT_TIMEOUT );
+		curl_setopt( $ch, CURLOPT_TIMEOUT, self::CALL_TIMEOUT );
 		
 		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, $callType );
 		
