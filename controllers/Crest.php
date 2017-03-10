@@ -6,27 +6,23 @@ class Crest extends CI_Controller {
 	{
 		parent::__construct();
 		$this->config->load('ccp_api');
-		$this->load->model('CREST_model');
+		$this->load->model('OAuth_Model');
 		$this->load->library( 'LibCREST', $this->config->item('crest_params') );
 	}// __construct()
 	
 	
 	public function login()		// Set up local state (for XSRF prevention) before calling external CCP URL
 	{
-		if( !$this->CREST_model->expecting_login() )
+		if( !$this->OAuth_Model->expecting_login() )
 		{
 			$this->session->set_flashdata( 'flash_message', 'Invalid CREST flow. Please ensure any bookmarks are still valid.' );
 			log_message( 'error', 'Crest controller: Invalid CREST flow. Not expecting login().' );
 			redirect('portal', 'location');
 		}
 		
-		$scopes = array(
-			'fleetRead',
-			'fleetWrite'/*,
-			'characterNavigationWrite'*/	// Need to track scopes of current token, request combo of previous and desired extras?
-		);
+		$scopes = $this->OAuth_Model->get_requested_scopes();
 		
-		$state = $this->CREST_model->setup_login_state();
+		$state = $this->OAuth_Model->setup_login_state();
 		
 		$url = $this->libcrest->get_authentication_url( $scopes, $state );
 		
@@ -38,7 +34,7 @@ class Crest extends CI_Controller {
 		$state = $this->input->get('state');
 		$code = $this->input->get('code');
 		
-		$local_state = $this->CREST_model->get_login_state();
+		$local_state = $this->OAuth_Model->get_login_state();
 		if( $local_state === NULL )
 		{
 			$this->session->set_flashdata( 'flash_message', 'Expired CREST state. Please avoid navigating Back during CREST actions.' );
@@ -63,7 +59,7 @@ class Crest extends CI_Controller {
 			redirect('portal', 'location');
 		}
 		
-		$location = $this->CREST_model->finish_login( $response );
+		$location = $this->OAuth_Model->finish_login( $response );
 		
 		redirect($location, 'location');
 		
