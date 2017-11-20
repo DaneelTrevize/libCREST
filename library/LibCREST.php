@@ -120,8 +120,11 @@ class LibCREST
 		switch( $callType )
 		{
 			case 'GET':
-				$fieldsString = self::build_params( $fields );
-				$url = $url .'?'. $fieldsString;
+				if( !empty($fields) )
+				{
+					$fieldsString = self::build_params( $fields );
+					$url .= '?'. $fieldsString;
+				}
 				break;
 			case 'POST':
 				$fieldsString = self::build_params( $fields );
